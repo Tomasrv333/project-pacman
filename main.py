@@ -1,132 +1,148 @@
+# main.py
+import pygame, sys
+from os.path import join
+from settings import WIDTH, HEIGHT, BG_COLOR
+from core.state import AppState
+from ui.menu import StartScreen, MainMenu, PlayWizard, OverlayControls, PauseMenu, DeathOverlay, StatsScreen
+from audio.music import MusicManager
+from storage.profile import set_music_enabled, is_music_enabled, update_stats
+from logic.random_generators import LCG, MiddleSquare, PAM
 
-import pygame, sys, copy
-from settings import *
-from map import LEVEL, is_wall, has_dot, eat_dot
-from player import Player
-from ghost import Ghost
-from random_generators import LCG, MiddleSquare, XorShift32
-
-def build_walls(level):
-    walls = []
-    for r,row in enumerate(level):
-        for c,val in enumerate(row):
-            if val == 1:  # pared
-                rect = pygame.Rect(c*TILE_SIZE, r*TILE_SIZE, TILE_SIZE, TILE_SIZE)
-                walls.append(rect)
-    return walls
-
-def draw_grid(screen, level, font):
-    for r,row in enumerate(level):
-        for c,val in enumerate(row):
-            x = c*TILE_SIZE
-            y = r*TILE_SIZE
-            if val == 1:  # pared
-                pygame.draw.rect(screen, BLUE, (x, y, TILE_SIZE, TILE_SIZE), border_radius=4)
-            elif val == 2:  # dot
-                pygame.draw.circle(screen, WHITE, (x+TILE_SIZE//2, y+TILE_SIZE//2), 2)
-            elif val == 3:  # power
-                pygame.draw.circle(screen, WHITE, (x+TILE_SIZE//2, y+TILE_SIZE//2), 5, width=1)
-
-def tile_at(px, py):
-    c = int(px // TILE_SIZE)
-    r = int(py // TILE_SIZE)
-    c = max(0, min(GRID_COLS-1, c))
-    r = max(0, min(GRID_ROWS-1, r))
-    return c, r
+# importa tu GameLoop real
+from core.game_loop import GameLoop
+# importa tu RNG registry si lo tienes (aquí finge)
+RNG_MAP = {
+    "LCG": LCG,
+    "Middle-Square": MiddleSquare,
+    "PAM": PAM
+}
 
 def main():
     pygame.init()
+    pygame.mixer.init()
     screen = pygame.display.set_mode((WIDTH, HEIGHT))
-    pygame.display.set_caption(TITLE)
     clock = pygame.time.Clock()
-    font = pygame.font.SysFont("arial", 18)
 
-    # estado del juego
-    level = copy.deepcopy(LEVEL)
-    walls = build_walls(level)
+    # música
+    music = MusicManager(music_path=join("assets", "sounds", "start_theme.mp3"), volume=0.4)    
+    if is_music_enabled(): music.play_loop()
 
-    # entidades
-    player = Player(TILE_SIZE*12 + TILE_SIZE//2, TILE_SIZE*19, level)
+    state = AppState.START
+    ctx = {}
+    start = StartScreen(screen, WIDTH, HEIGHT, music_mgr=music, bg_img=None)
+    main_menu = None
+    wizard = None
+    overlay = None
+    pause_menu = None
+    death = None
+    game = None
+    stats_screen = None
 
-    rngs = [LCG(seed=12345), MiddleSquare(seed=8421), XorShift32(seed=123456)]
-    rng_names = ["LCG", "MiddleSquare", "XorShift32"]
-    rng_idx = 0
-    ghost = Ghost(TILE_SIZE*12 + TILE_SIZE//2, TILE_SIZE*9, rngs[rng_idx])
-
-    # pantalla de título simple
-    title = True
-    while title:
+    while True:
+        screen.fill(BG_COLOR)
         for e in pygame.event.get():
             if e.type == pygame.QUIT:
                 pygame.quit(); sys.exit()
-            if e.type == pygame.KEYDOWN:
-                title = False
-        screen.fill(BLACK)
-        t1 = font.render("PACMAN — Simulación Discreta", True, YELLOW)
-        t2 = font.render("Presiona cualquier tecla para iniciar", True, WHITE)
-        t3 = font.render("Cambia PRNG con teclas 1/2/3 durante el juego", True, GRAY)
-        screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 60))
-        screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 - 20))
-        screen.blit(t3, (WIDTH//2 - t3.get_width()//2, HEIGHT//2 + 20))
+            # toggle música con M (en menús también)
+            if e.type == pygame.KEYDOWN and e.key == pygame.K_m:
+                music.set_enabled(not music.enabled)
+                set_music_enabled(music.enabled)
+
+            # estados
+            if state == AppState.START:
+                ns, data = start.handle_event(e)
+                if ns: state = ns; ctx.update(data or {})
+            elif state == AppState.MENU and main_menu:
+                ns, data = main_menu.handle_event(e)
+                if ns: state = ns; ctx.update(data or {})
+            elif state == AppState.WIZARD and wizard:
+                ns, data = wizard.handle_event(e)
+                if ns: state = ns; ctx.update(data or {})
+            elif state == AppState.PRE_GAME and overlay:
+                ns, data = overlay.handle_event(e)
+                if ns:
+                    # unir config nueva y avanzar
+                    ctx.update(data or {})
+                    config = ctx.get("config", {})
+                    rng_name = config.get("rng", "LCG")
+                    seed = config.get("seed") or 12345
+                    rng_cls = RNG_MAP.get(rng_name, list(RNG_MAP.values())[0])  # fallback seguro
+                    game = GameLoop(screen, rng_cls, rng_name, seed, config=config)
+                    state = ns
+            elif state == AppState.GAME and game:
+                if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
+                    state = AppState.PAUSE
+                    pause_menu = PauseMenu(screen, WIDTH, HEIGHT, music_mgr=music)
+            elif state == AppState.PAUSE and pause_menu:
+                act, _ = pause_menu.handle_event(e)
+                if act == "resume":
+                    state = AppState.GAME
+                elif act == "options":
+                    state = AppState.WIZARD
+                    wizard = PlayWizard(screen, WIDTH, HEIGHT, {"player": ctx.get("player")})
+                elif act == "home":
+                    state = AppState.MENU
+                elif act == "quit":
+                    pygame.quit(); sys.exit()
+            elif state == AppState.DEATH and death:
+                opt, _ = death.handle_event(e)
+                if opt == "Volver al inicio":
+                    state = AppState.MENU
+                elif opt == "Reintentar":
+                    state = AppState.PRE_GAME
+                    overlay = OverlayControls(screen, WIDTH, HEIGHT, ctx.get("config", {}))
+                elif opt == "Reintentar con otra configuración":
+                    state = AppState.WIZARD
+                    wizard = PlayWizard(screen, WIDTH, HEIGHT, {"player": ctx.get("player")})
+            elif state == AppState.STATS:
+                # Si no existe, crear la pantalla de estadísticas
+                if stats_screen is None:
+                    stats_screen = StatsScreen(screen, WIDTH, HEIGHT)
+
+                # Manejar eventos (para scroll o volver atrás)
+                ns, data = stats_screen.handle_event(e)
+                if ns:  # si se presionó ESC o Enter, volver al menú
+                    state = ns
+                    stats_screen = None  # resetear para recargar la próxima vez
+                    
+        # draw/update por estado
+        if state == AppState.START:
+            start.draw()
+        elif state == AppState.MENU:
+            if not main_menu:
+                main_menu = MainMenu(screen, WIDTH, HEIGHT, music_mgr=music, context=ctx)
+            main_menu.draw()
+        elif state == AppState.WIZARD:
+            if not wizard:
+                wizard = PlayWizard(screen, WIDTH, HEIGHT, context=ctx)
+            wizard.draw()
+        elif state == AppState.PRE_GAME:
+            if not overlay:
+                overlay = OverlayControls(screen, WIDTH, HEIGHT, config=ctx.get("config", {}))
+            overlay.draw()
+        elif state == AppState.GAME and game:
+            # corre el game loop de un paso (tu GameLoop ya tiene run(); aquí mostramos tick integrado)
+            dt = clock.tick(60)
+            game.update(dt)
+            game.draw()
+            # ejemplo: detectar muerte o fin para pasar a DEATH
+            if not game.running:
+                # guarda stats demo
+                update_stats(ctx.get("player","Anon"), score=getattr(game.player, "score", 0),
+                    time_s=60, config=ctx.get("config", {}))
+                state = AppState.DEATH
+                stats = {"Puntaje": getattr(game.player, "score", 0), "Tiempo (s)": 60}
+                death = DeathOverlay(screen, WIDTH, HEIGHT, stats)
+        elif state == AppState.PAUSE and pause_menu:
+            pause_menu.draw()
+        elif state == AppState.DEATH and death:
+            death.draw()
+        elif state == AppState.STATS:
+            if stats_screen:
+                stats_screen.draw()
+            
         pygame.display.flip()
-        clock.tick(30)
-
-    score = 0
-    lives = PLAYER_LIVES
-    running = True
-    while running:
-        dt = clock.tick(FPS)
-        for e in pygame.event.get():
-            if e.type == pygame.QUIT:
-                running = False
-            if e.type == pygame.KEYDOWN:
-                if e.key == pygame.K_1: rng_idx = 0; ghost.rng = rngs[rng_idx]
-                if e.key == pygame.K_2: rng_idx = 1; ghost.rng = rngs[rng_idx]
-                if e.key == pygame.K_3: rng_idx = 2; ghost.rng = rngs[rng_idx]
-
-        # update
-        player.update(dt, walls)
-        ghost.update(dt, walls)
-
-        # comer puntos
-        pc, pr = tile_at(player.rect.centerx, player.rect.centery)
-        if eat_dot(level, pc, pr):
-            score += DOT_SCORE
-
-        # colisión con fantasma
-        if player.rect.colliderect(ghost.rect):
-            lives -= 1
-            # respawn simple
-            player.rect.center = (TILE_SIZE*12 + TILE_SIZE//2, TILE_SIZE*19)
-            ghost.rect.center  = (TILE_SIZE*12 + TILE_SIZE//2, TILE_SIZE*9)
-            if lives <= 0:
-                running = False
-
-        # draw
-        screen.fill(BLACK)
-        draw_grid(screen, level, font)
-        screen.blit(player.image, player.rect)
-        screen.blit(ghost.image, ghost.rect)
-
-        # HUD
-        hud = font.render(f"Score: {score}   Vidas: {lives}   RNG: {rng_names[rng_idx]}", True, WHITE)
-        screen.blit(hud, (10, HEIGHT-32))
-
-        pygame.display.flip()
-
-    # pantalla fin
-    end = True
-    while end:
-        for e in pygame.event.get():
-            if e.type == pygame.QUIT:
-                end = False
-        screen.fill(BLACK)
-        t1 = font.render(f"Juego terminado — Score: {score}", True, WHITE)
-        t2 = font.render("Cierra la ventana para salir.", True, GRAY)
-        screen.blit(t1, (WIDTH//2 - t1.get_width()//2, HEIGHT//2 - 20))
-        screen.blit(t2, (WIDTH//2 - t2.get_width()//2, HEIGHT//2 + 20))
-        pygame.display.flip()
-        clock.tick(30)
-
-if __name__ == '__main__':
+        clock.tick(60)
+        
+if __name__ == "__main__":
     main()

@@ -1,0 +1,33 @@
+{
+  "players": {
+    "tomas": {
+      "created_at": 1759617439,
+      "best_score": 1740,
+      "games": 7,
+      "total_time_s": 420,
+      "last_config": {
+        "player": "tomas",
+        "map": "Clásico",
+        "difficulty": "Clásico",
+        "rng": "LCG",
+        "seed": null
+      }
+    },
+    "jesus": {
+      "created_at": 1759674845,
+      "best_score": 720,
+      "games": 1,
+      "total_time_s": 60,
+      "last_config": {
+        "player": "jesus",
+        "map": "Clásico",
+        "difficulty": "Clásico",
+        "rng": "Middle-Square",
+        "seed": null
+      },
+      "best_rng": "Middle-Square",
+      "best_difficulty": "Clásico"
+    }
+  },
+  "music": false
+}
