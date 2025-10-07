@@ -48,7 +48,7 @@ class Player(GridMover):
         # --- detectar modo poder global ---
         is_power = pygame.time.get_ticks() < self.game_ref.power_mode_until
         if is_power:
-            self.speed = 3.8
+            self.speed = 4.2
             # parpadeo visual suave
             self.power_flash = (pygame.time.get_ticks() // 150) % 2 == 0
         else:
@@ -60,7 +60,8 @@ class Player(GridMover):
             self.dir_vec = self.current_dir
 
         # --- animación de la boca ---
-        self.mouth_phase += (dt / 1000.0) * (self.speed * 2.2)
+        anim_speed = 3.5 if is_power else 2.2
+        self.mouth_phase += (dt / 1000.0) * (self.speed * anim_speed)
         if self.mouth_phase > 1.0:
             self.mouth_phase -= 1.0
 
@@ -75,8 +76,8 @@ class Player(GridMover):
         # ángulo de la boca (0 = cerrado)
         # abre de 18° a 40° y regresa
         t = self.mouth_phase
-        amp = 40
-        base = 18
+        amp = 60
+        base = 0
         mouth_deg = base + int(abs(0.5 - t) * 2 * (amp - base))  # triangulación
 
         # orientación

@@ -74,7 +74,7 @@ class StartScreen:
                 self.name = self.name[:-1]
             else:
                 ch = event.unicode
-                if ch.isalnum() or ch in " _-.":
+                if len(self.name) < 6 and (ch.isalnum() or ch in " _-."):
                     self.name += ch
         return None, None
 
@@ -82,6 +82,7 @@ class StartScreen:
         if self.bg: self.screen.blit(self.bg, (0,0))
         draw_label(self.screen, self.font_t, "RANDOMPAC", (self.W//2, self.H//3), YELLOW)
         draw_label(self.screen, self.font_i, "Escribe tu nombre y presiona Enter", (self.W//2, self.H//3+60), HINT)
+
         # input visual
         txt = self.name if self.name else "Tu nombre…"
         box = pygame.Rect(self.W//2-220, self.H//2-24, 440, 48)
@@ -91,6 +92,11 @@ class StartScreen:
         t_s = font_in.render(txt, True, TXT)
         self.screen.blit(t_s, (box.x+16, box.y+10))
         self.floats.draw(self.screen)
+
+        # Texto pequeño debajo del input
+        font_small = pygame.font.SysFont("arial", 20)
+        draw_label(self.screen, font_small, "(Máximo 6 caracteres)", (self.W//2, box.bottom + 20), (180, 180, 220))
+
 
 class MainMenu:
     OPTIONS = ["Jugar", "Estadísticas", "Generador de mapa"]

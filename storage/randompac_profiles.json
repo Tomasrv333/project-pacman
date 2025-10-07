@@ -58,17 +58,45 @@
     "a": {
       "created_at": 1759802706,
       "best_score": 3360,
-      "games": 1,
-      "total_time_s": 60,
+      "games": 4,
+      "total_time_s": 240,
       "last_config": {
         "player": "a",
         "map": "Clásico",
         "difficulty": "Clásico",
         "rng": "LCG",
-        "seed": 34247
+        "seed": 100402
       },
       "best_rng": "LCG",
       "best_difficulty": "Clásico"
+    },
+    "asdfas": {
+      "created_at": 1759868823,
+      "best_score": 0,
+      "games": 0,
+      "total_time_s": 0,
+      "last_config": {}
+    },
+    "alejop": {
+      "created_at": 1759868850,
+      "best_score": 0,
+      "games": 0,
+      "total_time_s": 0,
+      "last_config": {}
+    },
+    "AlejoP": {
+      "created_at": 1759868927,
+      "best_score": 0,
+      "games": 0,
+      "total_time_s": 0,
+      "last_config": {}
+    },
+    "ToASDA": {
+      "created_at": 1759869042,
+      "best_score": 0,
+      "games": 0,
+      "total_time_s": 0,
+      "last_config": {}
     }
   },
   "music": true

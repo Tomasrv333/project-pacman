@@ -25,8 +25,8 @@ def main():
     clock = pygame.time.Clock()
 
     # música
-    music = MusicManager(music_path=join("assets", "sounds", "start_themee.mp3"), volume=0.4)    
-    if is_music_enabled(): music.play_loop()
+    music = MusicManager(music_path=join("assets", "sounds", "start_theme.mp3"), volume=0.4)    
+    #if is_music_enabled(): music.play_loop()
 
     state = AppState.START
     ctx = {}
@@ -70,19 +70,24 @@ def main():
                     seed = config.get("seed") or 12345
                     rng_cls = RNG_MAP.get(rng_name, list(RNG_MAP.values())[0])  # fallback seguro
                     game = GameLoop(screen, rng_cls, rng_name, seed, config=config)
+                    if is_music_enabled():
+                        music.play_loop()
                     state = ns
             elif state == AppState.GAME and game:
                 if e.type == pygame.KEYDOWN and e.key == pygame.K_ESCAPE:
+                    pygame.mixer.music.pause()
                     state = AppState.PAUSE
                     pause_menu = PauseMenu(screen, WIDTH, HEIGHT, music_mgr=music)
             elif state == AppState.PAUSE and pause_menu:
                 act, _ = pause_menu.handle_event(e)
                 if act == "resume":
+                    pygame.mixer.music.unpause()
                     state = AppState.GAME
                 elif act == "options":
                     state = AppState.WIZARD
                     wizard = PlayWizard(screen, WIDTH, HEIGHT, {"player": ctx.get("player")})
                 elif act == "home":
+                    pygame.mixer.music.stop()
                     state = AppState.MENU
                 elif act == "quit":
                     pygame.quit(); sys.exit()

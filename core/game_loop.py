@@ -86,9 +86,19 @@ class GameLoop:
 
     # ---------- LÓGICA ----------
     def reset_positions(self):
-        self.player.teleport((13,23))
-        for i,g in enumerate(self.ghosts.sprites()):
-            g.teleport((13+(i%2)*1 + (-1 if i==2 else 0), 14))
+        self.player.teleport((13, 23))
+        self.ghosts.empty()  # limpia el grupo
+
+        # recrea todos los fantasmas en sus posiciones iniciales
+        new_ghosts = [
+            Ghost(self.level, (13, 13), RED, "chaser", self.player, self.speed_ghost, self.generator),
+            Ghost(self.level, (14, 13), PINK, "random", self.player, self.speed_ghost, self.generator),
+            Ghost(self.level, (12, 13), CYAN, "random", self.player, self.speed_ghost, self.generator),
+            Ghost(self.level, (15, 13), ORANGE, "random", self.player, self.speed_ghost, self.generator),
+        ]
+        self.ghosts.add(new_ghosts)
+
+        for g in self.ghosts:
             g.current_dir = pygame.Vector2(0, -1)
             g.state = STATE_NORMAL
             g._draw()
@@ -136,15 +146,38 @@ class GameLoop:
                     self.player.add_score(gain)
                     g.was_eaten()
                     self.sfx.play("ghost_eat")
+
+                    # 🔹 DIBUJA SOLO EL +100 sin limpiar la pantalla
+                    text = self.font.render(f"+{gain}", True, (255, 255, 255))
+                    rect = text.get_rect(center=g.pos)
+
+                    # Redibuja la escena actual (sin llenar la pantalla azul)
+                    self.draw_grid()
+                    self.screen.blit(self.player.image, self.player.rect)
+                    self.ghosts.draw(self.screen)
+                    self.hud.draw()
+
+                    # Ahora dibuja el texto encima
+                    self.screen.blit(text, rect)
+                    pygame.display.update(rect)  # actualiza solo esa zona
+                    pygame.time.delay(300)
+
                     self.hud.update(self.player.score, self.player.lives, f"+{gain}")
                 elif g.state != STATE_EATEN:
                     # perder vida
                     self.player.lives -= 1
                     self.sfx.stop("frightened")
                     self.sfx.play("death")
+                    #Para que la música de la muerte suene en tiempo
+                    self.draw()
+                    pygame.display.flip()
+                    self.sfx.play("death")
+                    pygame.time.delay(300)
+                    #------------------------------------------
                     self.chain_eat = 0
                     if self.player.lives <= 0:
                         self.running = False
+                        pygame.mixer.music.stop()
                         return
                     self.reset_positions()
                     self.hud.update(self.player.score, self.player.lives, "¡Ay!")

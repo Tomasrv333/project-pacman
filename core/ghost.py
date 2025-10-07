@@ -51,6 +51,8 @@ class Ghost(GridMover):
 
     def was_eaten(self):
         self.state = STATE_EATEN
+        self.visible = False  # nuevo flag de visibilidad
+        self.kill()  # lo elimina del grupo de sprites temporalmente
 
     def _speed_factor(self):
         if self.state == STATE_FRIGHTENED:

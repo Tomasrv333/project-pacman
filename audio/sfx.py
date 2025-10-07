@@ -5,7 +5,7 @@ DEFAULT_MAP = {
     "dot":         ["assets/sounds/eat_dot.wav", "assets/sounds/eat_dot.ogg", "assets/sounds/eat_dot.mp3"],
     "power":       ["assets/sounds/power.wav", "assets/sounds/power.ogg"],
     "ghost_eat":   ["assets/sounds/ghost_eat.wav", "assets/sounds/ghost_eat.ogg"],
-    "death":       ["assets/sounds/death.wav", "assets/sounds/death.ogg"],
+    "death":       ["assets/sounds/death.mp3", "assets/sounds/death.wav", "assets/sounds/death.ogg"],
     "frightened":  ["assets/sounds/frightened_loop.ogg"],  # opcional (loop)
     "extra_life":  ["assets/sounds/extra_life.wav"],
 }

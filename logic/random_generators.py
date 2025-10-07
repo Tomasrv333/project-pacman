@@ -6,9 +6,11 @@ Implementa tres métodos de generación pseudoaleatoria usados en clase y un mé
 1️⃣ Método del Cuadrado Medio (Von Neumann, 1946)
     X_{n+1} = dígitos centrales de (X_n)^2
     - Tiende a ciclos cortos pero es clásico e histórico.
+
 2️⃣ Método Congruencial Lineal (Lehmer, 1949)
     X_{n+1} = (a*X_n + c) mod m
     - Controla ciclo y repetición con parámetros adecuados.
+    
 3️⃣ Método del Promedio Aritmético Múltiple (Original del grupo)
     X_{n+1} = ((X_n + 2*X_{n-1} + 3*X_{n-2}) / 6) * 10000 mod m
     - Idea propia basada en promedios ponderados para romper la linealidad.
