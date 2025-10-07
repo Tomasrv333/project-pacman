@@ -93,7 +93,7 @@ class StartScreen:
         self.floats.draw(self.screen)
 
 class MainMenu:
-    OPTIONS = ["Jugar", "Enciclopedia", "Estadísticas", "Configuraciones", "Generador de mapa"]
+    OPTIONS = ["Jugar", "Estadísticas", "Generador de mapa"]
     def __init__(self, screen, width, height, music_mgr: MusicManager, context: dict):
         self.screen = screen; self.W=width; self.H=height
         self.font = pygame.font.SysFont("arial", 34)
@@ -111,9 +111,7 @@ class MainMenu:
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 opt = self.OPTIONS[self.sel]
                 if opt == "Jugar": return AppState.WIZARD, {}
-                if opt == "Enciclopedia": return AppState.ENCYCLOPEDIA, {}
                 if opt == "Estadísticas": return AppState.STATS, {}
-                if opt == "Configuraciones": return AppState.SETTINGS, {}
                 if opt == "Generador de mapa": return AppState.MAP_EDITOR, {}
         return None, None
 
