@@ -143,8 +143,13 @@ def main():
                 update_stats(ctx.get("player","Anon"), score=getattr(game.player, "score", 0),
                     time_s=60, config=ctx.get("config", {}))
                 state = AppState.DEATH
-                stats = {"Puntaje": getattr(game.player, "score", 0), "Tiempo (s)": 60}
+                stats = {
+                    "Puntaje": getattr(game.player, "score", 0),
+                    "Tiempo (s)": 60,
+                    "result": getattr(game, "result", "lose")
+                }
                 death = DeathOverlay(screen, WIDTH, HEIGHT, stats)
+
         elif state == AppState.PAUSE and pause_menu:
             pause_menu.draw()
         elif state == AppState.DEATH and death:

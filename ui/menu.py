@@ -357,7 +357,8 @@ class DeathOverlay:
     def draw(self):
         overlay = pygame.Surface((self.W, self.H), pygame.SRCALPHA)
         overlay.fill((0,0,0,180)); self.screen.blit(overlay, (0,0))
-        draw_label(self.screen, self.font, "¡Has muerto!", (self.W//2, 180), YELLOW)
+        msg = "¡Has Ganado!" if self.stats.get("result") == "win" else "¡Has Muerto!"
+        draw_label(self.screen, self.font, msg, (self.W//2, 180), YELLOW)
         y=230
         for k,v in self.stats.items():
             draw_label(self.screen, self.font, f"{k}: {v}", (self.W//2, y)); y+=34

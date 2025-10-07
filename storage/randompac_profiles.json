@@ -57,15 +57,15 @@
     },
     "a": {
       "created_at": 1759802706,
-      "best_score": 3360,
-      "games": 4,
-      "total_time_s": 240,
+      "best_score": 3960,
+      "games": 7,
+      "total_time_s": 420,
       "last_config": {
         "player": "a",
         "map": "Clásico",
         "difficulty": "Clásico",
         "rng": "LCG",
-        "seed": 100402
+        "seed": 970986
       },
       "best_rng": "LCG",
       "best_difficulty": "Clásico"
@@ -99,5 +99,5 @@
       "last_config": {}
     }
   },
-  "music": true
+  "music": false
 }

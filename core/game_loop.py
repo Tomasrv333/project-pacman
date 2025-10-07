@@ -176,6 +176,7 @@ class GameLoop:
                     #------------------------------------------
                     self.chain_eat = 0
                     if self.player.lives <= 0:
+                        self.result = "lose"
                         self.running = False
                         pygame.mixer.music.stop()
                         return
@@ -189,6 +190,7 @@ class GameLoop:
 
         # victoria
         if all(all(v not in (2, 3) for v in row) for row in self.level):
+            self.result = "win"
             self.running = False
 
     # ---------- DIBUJO ----------
