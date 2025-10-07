@@ -27,6 +27,48 @@
       },
       "best_rng": "Middle-Square",
       "best_difficulty": "Clásico"
+    },
+    "Alejandro Perez": {
+      "created_at": 1759802295,
+      "best_score": 0,
+      "games": 0,
+      "total_time_s": 0,
+      "last_config": {}
+    },
+    "Alejandro": {
+      "created_at": 1759802340,
+      "best_score": 0,
+      "games": 0,
+      "total_time_s": 0,
+      "last_config": {}
+    },
+    "A": {
+      "created_at": 1759802421,
+      "best_score": 0,
+      "games": 14,
+      "total_time_s": 840,
+      "last_config": {
+        "player": "A",
+        "map": "prueba",
+        "difficulty": "Clásico",
+        "rng": "LCG",
+        "seed": 359064
+      }
+    },
+    "a": {
+      "created_at": 1759802706,
+      "best_score": 3360,
+      "games": 1,
+      "total_time_s": 60,
+      "last_config": {
+        "player": "a",
+        "map": "Clásico",
+        "difficulty": "Clásico",
+        "rng": "LCG",
+        "seed": 34247
+      },
+      "best_rng": "LCG",
+      "best_difficulty": "Clásico"
     }
   },
   "music": true
