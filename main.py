@@ -7,6 +7,7 @@ from ui.menu import StartScreen, MainMenu, PlayWizard, OverlayControls, PauseMen
 from audio.music import MusicManager
 from storage.profile import set_music_enabled, is_music_enabled, update_stats
 from logic.random_generators import LCG, MiddleSquare, PAM
+from ui.map_editor import MapEditor
 
 # importa tu GameLoop real
 from core.game_loop import GameLoop
@@ -24,7 +25,7 @@ def main():
     clock = pygame.time.Clock()
 
     # música
-    music = MusicManager(music_path=join("assets", "sounds", "start_theme.mp3"), volume=0.4)    
+    music = MusicManager(music_path=join("assets", "sounds", "start_themee.mp3"), volume=0.4)    
     if is_music_enabled(): music.play_loop()
 
     state = AppState.START
@@ -37,6 +38,7 @@ def main():
     death = None
     game = None
     stats_screen = None
+    map_editor = None
 
     while True:
         screen.fill(BG_COLOR)
@@ -104,6 +106,11 @@ def main():
                 if ns:  # si se presionó ESC o Enter, volver al menú
                     state = ns
                     stats_screen = None  # resetear para recargar la próxima vez
+            elif state == AppState.MAP_EDITOR and map_editor:
+                ns, data = map_editor.handle_event(e)
+                if ns:
+                    state = ns
+                    map_editor = None
                     
         # draw/update por estado
         if state == AppState.START:
@@ -140,6 +147,10 @@ def main():
         elif state == AppState.STATS:
             if stats_screen:
                 stats_screen.draw()
+        elif state == AppState.MAP_EDITOR:
+            if not map_editor:
+                map_editor = MapEditor(screen, WIDTH, HEIGHT)
+            map_editor.draw()
             
         pygame.display.flip()
         clock.tick(60)

@@ -3,14 +3,14 @@
     "tomas": {
       "created_at": 1759617439,
       "best_score": 1740,
-      "games": 7,
-      "total_time_s": 420,
+      "games": 9,
+      "total_time_s": 540,
       "last_config": {
         "player": "tomas",
-        "map": "Clásico",
-        "difficulty": "Clásico",
-        "rng": "LCG",
-        "seed": null
+        "map": "prueba",
+        "difficulty": "Extremo",
+        "rng": "Middle-Square",
+        "seed": 297993
       }
     },
     "jesus": {
@@ -29,5 +29,5 @@
       "best_difficulty": "Clásico"
     }
   },
-  "music": false
+  "music": true
 }

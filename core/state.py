@@ -12,3 +12,4 @@ class AppState(Enum):
     ENCYCLOPEDIA = auto()
     STATS = auto()
     SETTINGS = auto()
+    MAP_EDITOR = auto()    # generador de mapa

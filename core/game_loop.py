@@ -9,14 +9,15 @@ from core.player import Player
 from core.ghost import Ghost, STATE_FRIGHTENED, STATE_EATEN, STATE_NORMAL
 from core.hud import HUD
 from core.effects import Transition
-from logic.map import generate_level, eat_dot
+from logic.map import load_map, eat_dot
 from audio.sfx import SFX
 from storage.profile import update_stats
 
 class GameLoop:
     def __init__(self, screen, generator_class, method_name, seed, config=None):
         self.screen = screen
-        self.level = generate_level()
+        self.config = config or {}
+        self.level = load_map(self.config.get("map"))
         self.generator = generator_class(seed)
         self.method_name = method_name
         self.seed = seed
@@ -27,7 +28,6 @@ class GameLoop:
         self.paused = False
 
         # === CONFIGURACIÓN GENERAL ===
-        self.config = config or {}
         difficulty = self.config.get("difficulty", "Clásico")
 
         # === VELOCIDADES POR DIFICULTAD ===

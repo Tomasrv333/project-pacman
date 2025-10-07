@@ -1,9 +1,11 @@
 # ui/menu.py
 import pygame
-import time
+import time, random
 from core.state import AppState
 from storage.profile import ensure_player, load_db, is_music_enabled, set_music_enabled, get_stats
 from audio.music import MusicManager
+from logic.random_generators import LCG, MiddleSquare, PAM
+from logic.map import list_custom_maps
 
 BTN_BG = (20, 20, 60)
 BTN_BG_H = (40, 40, 100)
@@ -91,7 +93,7 @@ class StartScreen:
         self.floats.draw(self.screen)
 
 class MainMenu:
-    OPTIONS = ["Jugar", "Enciclopedia", "Estadísticas", "Configuraciones"]
+    OPTIONS = ["Jugar", "Enciclopedia", "Estadísticas", "Configuraciones", "Generador de mapa"]
     def __init__(self, screen, width, height, music_mgr: MusicManager, context: dict):
         self.screen = screen; self.W=width; self.H=height
         self.font = pygame.font.SysFont("arial", 34)
@@ -112,6 +114,7 @@ class MainMenu:
                 if opt == "Enciclopedia": return AppState.ENCYCLOPEDIA, {}
                 if opt == "Estadísticas": return AppState.STATS, {}
                 if opt == "Configuraciones": return AppState.SETTINGS, {}
+                if opt == "Generador de mapa": return AppState.MAP_EDITOR, {}
         return None, None
 
     def draw(self):
@@ -124,73 +127,151 @@ class MainMenu:
         self.floats.draw(self.screen)
 
 class PlayWizard:
-    RNGS = ["LCG", "Middle-Square", "Blum-Blum-Shub", "Xorshift"]
-    DIFFS = ["Clásico", "Difícil", "Extremo"]
-    MAPS = ["Clásico", "Creativo", "Vacío"]
-    FIELDS = ["Mapa", "Dificultad", "RNG", "Semilla (opcional)"]
     def __init__(self, screen, width, height, context: dict):
-        self.screen=screen; self.W=width; self.H=height
+        self.screen = screen
+        self.W, self.H = width, height
         self.font = pygame.font.SysFont("arial", 28)
+        self.font_desc = pygame.font.SysFont("arial", 20)
         self.sel = 0
-        self.map_i=0; self.diff_i=0; self.rng_i=0; self.seed_txt=""
-        self.player = context.get("player")
 
+        # === Datos dinámicos ===
+        self.player = context.get("player")
+        self.maps = ["Clásico"] + list_custom_maps()
+        self.difficulties = ["Clásico", "Difícil", "Extremo"]
+
+        # RNG reales desde logic/random_generators
+        self.rng_classes = {
+            "LCG": LCG,
+            "Middle-Square": MiddleSquare,
+            "PAM": PAM
+        }
+        self.rng_names = list(self.rng_classes.keys())
+
+        # === Estados ===
+        self.map_i = 0
+        self.diff_i = 0
+        self.rng_i = 0
+        self.seed_mode = "Auto"  # "Auto" o "Manual"
+        self.seed_value = ""
+
+        # === Campos ===
+        self.FIELDS = ["Mapa", "Dificultad", "RNG", "Semilla"]
+
+    # ---------- helpers ----------
     def _value_for(self, idx):
-        if idx==0: return self.MAPS[self.map_i]
-        if idx==1: return self.DIFFS[self.diff_i]
-        if idx==2: return self.RNGS[self.rng_i]
-        if idx==3: return self.seed_txt or "(auto)"
+        if idx == 0:
+            return self.maps[self.map_i]
+        elif idx == 1:
+            return self.difficulties[self.diff_i]
+        elif idx == 2:
+            return self.rng_names[self.rng_i]
+        elif idx == 3:
+            if self.seed_mode == "Auto":
+                return "Auto (aleatorio)"
+            else:
+                return self.seed_value or "(ingresa número)"
         return ""
 
+    # ---------- eventos ----------
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
-            if event.key in (pygame.K_UP, pygame.K_w):   self.sel = (self.sel-1) % len(self.FIELDS)
-            elif event.key in (pygame.K_DOWN, pygame.K_s): self.sel = (self.sel+1) % len(self.FIELDS)
+            # navegar campos
+            if event.key in (pygame.K_UP, pygame.K_w):
+                self.sel = (self.sel - 1) % len(self.FIELDS)
+            elif event.key in (pygame.K_DOWN, pygame.K_s):
+                self.sel = (self.sel + 1) % len(self.FIELDS)
+
+            # cambiar valores con flechas
             elif event.key in (pygame.K_LEFT, pygame.K_a):
-                if self.sel==0: self.map_i = (self.map_i-1)%len(self.MAPS)
-                elif self.sel==1: self.diff_i = (self.diff_i-1)%len(self.DIFFS)
-                elif self.sel==2: self.rng_i = (self.rng_i-1)%len(self.RNGS)
+                if self.sel == 0:
+                    self.map_i = (self.map_i - 1) % len(self.maps)
+                elif self.sel == 1:
+                    self.diff_i = (self.diff_i - 1) % len(self.difficulties)
+                elif self.sel == 2:
+                    self.rng_i = (self.rng_i - 1) % len(self.rng_names)
+                elif self.sel == 3:
+                    self.toggle_seed_mode()
             elif event.key in (pygame.K_RIGHT, pygame.K_d):
-                if self.sel==0: self.map_i = (self.map_i+1)%len(self.MAPS)
-                elif self.sel==1: self.diff_i = (self.diff_i+1)%len(self.DIFFS)
-                elif self.sel==2: self.rng_i = (self.rng_i+1)%len(self.RNGS)
-            elif self.sel==3:
-                if event.key == pygame.K_BACKSPACE: self.seed_txt = self.seed_txt[:-1]
-                elif event.key == pygame.K_RETURN:
-                    # listo → pasar al overlay de controles
-                    cfg = {
-                        "player": self.player,
-                        "map": self.MAPS[self.map_i],
-                        "difficulty": self.DIFFS[self.diff_i],
-                        "rng": self.RNGS[self.rng_i],
-                        "seed": self.seed_txt.strip() if self.seed_txt.strip() else None,
-                    }
-                    return AppState.PRE_GAME, {"config": cfg}
-                else:
-                    ch = event.unicode
-                    if ch.isalnum() or ch in "-_.":
-                        self.seed_txt += ch
+                if self.sel == 0:
+                    self.map_i = (self.map_i + 1) % len(self.maps)
+                elif self.sel == 1:
+                    self.diff_i = (self.diff_i + 1) % len(self.difficulties)
+                elif self.sel == 2:
+                    self.rng_i = (self.rng_i + 1) % len(self.rng_names)
+                elif self.sel == 3:
+                    self.toggle_seed_mode()
+
+            # escribir semilla si está en manual
+            elif self.sel == 3 and self.seed_mode == "Manual":
+                if event.key == pygame.K_BACKSPACE:
+                    self.seed_value = self.seed_value[:-1]
+                elif event.unicode.isdigit() and len(self.seed_value) < 8:
+                    self.seed_value += event.unicode
+
+            # confirmar
             elif event.key == pygame.K_RETURN:
-                cfg = {
+                seed = None
+                if self.seed_mode == "Manual" and self.seed_value.strip():
+                    seed = int(self.seed_value)
+                else:
+                    seed = random.randint(1000, 999999)
+
+                config = {
                     "player": self.player,
-                    "map": self.MAPS[self.map_i],
-                    "difficulty": self.DIFFS[self.diff_i],
-                    "rng": self.RNGS[self.rng_i],
-                    "seed": self.seed_txt.strip() if self.seed_txt.strip() else None,
+                    "map": self.maps[self.map_i],
+                    "difficulty": self.difficulties[self.diff_i],
+                    "rng": self.rng_names[self.rng_i],
+                    "seed": seed
                 }
-                return AppState.PRE_GAME, {"config": cfg}
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+                return AppState.PRE_GAME, {"config": config}
+
+            # volver atrás
+            elif event.key == pygame.K_ESCAPE:
                 return AppState.MENU, {}
         return None, None
 
+    def toggle_seed_mode(self):
+        self.seed_mode = "Manual" if self.seed_mode == "Auto" else "Auto"
+        if self.seed_mode == "Auto":
+            self.seed_value = ""
+
+    # ---------- dibujo ----------
     def draw(self):
-        draw_label(self.screen, self.font, "Configuración de partida (Enter para iniciar)", (self.W//2, 120), YELLOW)
+        self.screen.fill((10, 15, 40))
+        draw_label(self.screen, self.font, "Configuración de partida", (self.W//2, 100), YELLOW)
+
         for i, field in enumerate(self.FIELDS):
-            rect = pygame.Rect(self.W//2-260, 180+i*70, 520, 56)
-            pygame.draw.rect(self.screen, BTN_BG_H if i==self.sel else BTN_BG, rect, border_radius=12)
+            rect = pygame.Rect(self.W//2 - 260, 160 + i*70, 520, 56)
+            pygame.draw.rect(self.screen, BTN_BG_H if i == self.sel else BTN_BG, rect, border_radius=12)
             draw_label(self.screen, self.font, f"{field}: {self._value_for(i)}", rect.center, TXT)
+
+        # descripción del RNG
+        rng_cls = self.rng_classes[self.rng_names[self.rng_i]]
+        info = getattr(rng_cls(), "info", None)
+        if info:
+            name, desc = info
+            full_text = f"{name}: {desc}"
+            wrapped = []
+            # dividir texto si es muy largo
+            words = full_text.split(" ")
+            line = ""
+            for w in words:
+                if self.font_desc.size(line + w)[0] > self.W - 120:
+                    wrapped.append(line)
+                    line = w + " "
+                else:
+                    line += w + " "
+            wrapped.append(line)
+
+            y = 160 + len(self.FIELDS)*70 + 20
+            for line in wrapped:
+                text = self.font_desc.render(line.strip(), True, (200, 220, 255))
+                self.screen.blit(text, (self.W//2 - text.get_width()//2, y))
+                y += 24
+
+        # hint
         font_hint = pygame.font.SysFont("arial", 22)
-        hint = font_hint.render("Presiona ESC para volver", True, (180, 190, 210))
+        hint = font_hint.render("Usa ESC para volver, Enter para comenzar", True, (180, 190, 210))
         self.screen.blit(hint, (30, self.H - 40))
 
 class OverlayControls:
